@@ -2,8 +2,6 @@
 
 namespace App\Controller;
 
-use App\Service\TransactionService;
-use App\Entity\InventoryTransaction;
 use App\Service\ExternalService\S3Service;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -47,7 +45,12 @@ class ExportController extends AbstractController
     {
         $content = $request->getContent();
         $postData = json_decode($content, true);
-        $this->excelExportService->export($postData['data'],['ID','Tên SP','Mã Chính ','Mã Phụ','Khách Hàng', 'SL', 'Loại GD', 'Ngày'],$filename);
+        $originalArray = $postData['data'];
+        $newKeys = ['ID','Tên SP','Mã Chính ','Mã Phụ','Khách Hàng', 'SL', 'Loại GD', 'Ngày'];
+        $result = array_map(function($subArray) use ($newKeys) {
+            return array_combine($newKeys, array_values($subArray));
+        }, $originalArray);
+        $this->excelExportService->export($result,['ID','Tên SP','Mã Chính ','Mã Phụ','Khách Hàng', 'SL', 'Loại GD', 'Ngày'],$filename);
         return $this->file($filename, $filename, ResponseHeaderBag::DISPOSITION_ATTACHMENT);
 
     }

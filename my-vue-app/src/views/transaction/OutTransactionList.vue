@@ -1,27 +1,29 @@
 <template>
   <div>
-    <h2>Danh sách Xuất</h2>
+    <h2>Danh sách Nhập</h2>
     <div>Số Bản ghi: {{ totalCount }}</div>
+    <div>Số lượng hiện tại: {{ totalAmount }}</div>
     <div>
       <div class='wrapper'>
-        Từ ngày <input type="date" v-model="fromDate"> Đến ngày <input type="date" v-model="toDate">
+        <p><label>Từ ngày</label>
+          <VueDatePicker v-model="fromDate" :format="'dd/MM/yyyy'" :min-date="new Date('2024-01-01')"
+            :max-date="new Date('2024-12-31')" placeholder="Select a date" />
+          <label>Den ngày</label>
+          <VueDatePicker v-model="toDate" :format="'dd/MM/yyyy'" :min-date="new Date('2024-01-01')"
+            :max-date="new Date('2024-12-31')" placeholder="Select a date" />
+        </p>
         <button @click="fetchData">Tìm kiếm</button>
         <button @click="exportExcel">Xuất file</button>
+
         <img v-if="isLoading" src="@/assets/giphy.webp" alt="Loading..." />
       </div>
     </div>
     <ag-grid-vue class="ag-theme-quartz" :columnDefs="columnDefs" :rowData="items" :getRowId="getRowId"
       :frameworkComponents="frameworkComponents" :pagination="true" :paginationPageSize="pageSize"
       :paginationPageSizeSelector="paginationPageSizeSelector" @grid-ready="onGridReady" :modules="modules"
-      @paginationChanged="onPaginationChanged" :defaultColDef="defaultColDef"
-      :getRowClass="getRowClass"
-      :getRowStyle="getRowStyle"
-      style="width: 100%; height: 1000px;"></ag-grid-vue>
-    <div class="custom-pagination">
-      <button @click="onBtPrevious">Previous</button>
-      <span>Page {{ currentPage }} of {{ totalPages }}</span>
-      <button @click="onBtNext">Next</button>
-    </div>
+      @paginationChanged="onPaginationChanged" :defaultColDef="defaultColDef" :getRowClass="getRowClass"
+      :getRowStyle="getRowStyle" style="width: 100%; height: 1000px;"></ag-grid-vue>
+
   </div>
 </template>
 
@@ -31,9 +33,9 @@ import { ref, onMounted } from 'vue';
 import { AgGridVue } from "ag-grid-vue3"; // Vue Data Grid Component
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-quartz.css";
-import { DatePickerComponent as EjsDatepicker } from '@syncfusion/ej2-vue-calendars';
-import Datepicker from 'vue-datepicker-next'
-import 'vue-datepicker-next/index.css'
+import moment from 'moment';
+import VueDatePicker from '@vuepic/vue-datepicker';
+import '@vuepic/vue-datepicker/dist/main.css'
 const ColourComponent = {
   template: '<span :style="{color: params.color}">{{params.value}}</span>'
 };
@@ -42,7 +44,7 @@ const baseURL = import.meta.env.VITE_BASE_API_URL;
 export default {
   components: {
     'ag-grid-vue': AgGridVue,
-    EjsDatepicker
+    'VueDatePicker': VueDatePicker,
   },
 
   data() {
@@ -56,26 +58,32 @@ export default {
       totalCount: 0,
       totalPages: 0,
       rowSelection: "multiple",
-      paginationPageSize: 50000,
       transactionType: 'Xuat',
+      totalAmount: 0,
+      paginationPageSize: 50000,
       paginationPageSizeSelector: [500, 1000],
       pagination: {
         currentPage: 1,
         totalPages: 1,
         totalItems: 0,
       },
+      activeFilters: {},
       columnDefs: [
-        { headerName: 'ID', field: 'id', filter: true, editable: true, filter: true, width: 80  },
-        { headerName: 'Tên SP', field: 'product.name', filter: true, editable: true, filter: true, width: 300  },
+        { headerName: 'ID', field: 'id', filter: true, editable: true, filter: true, width: 80 },
+        { headerName: 'Tên SP', field: 'product.name', filter: true, editable: true, filter: true, width: 300 },
         { headerName: 'Mã Chính', field: 'product.mainCode', filter: true, editable: true, filter: true, width: 100 },
-        { headerName: 'Mã Chính Mở Rộng', field: 'product.code', filter: true, editable: true, filter: true,  width: 150 },
-        { headerName: 'KH', field: 'customerName', filter: true, editable: true, filter: true ,width: 150},
-        { headerName: 'Kho', field: 'inventory.name', filter: true, editable: true, filter: true ,width: 100},
-        { headerName: 'SL', field: 'quantity',width: 80 },
+        { headerName: 'Mã Chính Mở Rộng', field: 'product.code', filter: true, editable: true, filter: true, width: 150 },
+        { headerName: 'KH', field: 'customerName', filter: true, editable: true, filter: true, width: 150 },
+        { headerName: 'Kho', field: 'inventory.name', filter: true, editable: true, filter: true, width: 100 },
+        { headerName: 'SL', field: 'quantity', width: 80 },
         { headerName: 'Giá', field: 'unitPrice', width: 100 },
-        { headerName: 'Giao dịch', field: 'transactionType',width: 100, filter: true, editable: true, suppressSizeToFit: true },
+        { headerName: 'Giao dịch', field: 'transactionType', width: 100, filter: true, editable: true, suppressSizeToFit: true },
         { headerName: 'Thành tiền', field: 'totalPrice', width: 100 },
-        { headerName: 'Ngày nhập', field: 'transactionDate' ,filter: true, editable: true,  width: 150, suppressSizeToFit: true},
+        {
+          headerName: 'Ngày nhập', field: 'transactionDate', filter: true, editable: true,
+          filter: 'agTextColumnFilter',
+          width: 150, suppressSizeToFit: true
+        },
       ],
       frameworkComponents: {
       },
@@ -84,6 +92,21 @@ export default {
   created() {
     this.setDefaultDates();
     this.fetchData();
+  },
+  computed: {
+    filteredAgeSum() {
+      if (!this.gridApi) {
+        console.log("filteredAgeSum ===============")
+        return 0;
+      }
+      console.log("filteredAgeSum")
+      let sum = 0;
+      this.gridApi.forEachNodeAfterFilter(node => {
+        console.log(node);
+        sum += node.data.quantity;
+      });
+      return sum;
+    }
   },
   methods: {
     getRowClass(params) {
@@ -114,22 +137,24 @@ export default {
     async exportExcel() {
       try {
         this.isLoading = true;
-        const from = this.fromDate;
-        const to = this.toDate
+        this.exportFilteredData();
+        this.isLoading = false;
+        // const from = this.fromDate;
+        // const to = this.toDate
+        // // const page = this.currentPage;
+        // // const limit = 50;
         // const page = this.currentPage;
-        // const limit = 50;
-        const page = this.currentPage;
-        const limit = this.paginationPageSize;
-        const response = await axios.get(`${baseURL}/export`, {
-          params: { page, limit, from, to },
-          responseType: 'blob'
-        });
+        // const limit = this.paginationPageSize;
+        // const response = await axios.get(`${baseURL}/export`, {
+        //   params: { page, limit, from, to },
+        //   responseType: 'blob'
+        // });
 
-        const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        const link = document.createElement('a');
-        link.href = window.URL.createObjectURL(blob);
-        link.download = 'export.xlsx';
-        link.click();
+        // const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        // const link = document.createElement('a');
+        // link.href = window.URL.createObjectURL(blob);
+        // link.download = 'export.xlsx';
+        // link.click();
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -146,7 +171,7 @@ export default {
         const limit = this.paginationPageSize;
         const transactionType = this.transactionType;
         const response = await axios.get(`${baseURL}/transaction/query`, {
-          params: { page, limit, from, to , transactionType},
+          params: { page, limit, from, to, transactionType },
         });
         this.items = response.data.items;
         this.pagination = response.data.pagination;
@@ -161,30 +186,72 @@ export default {
       this.gridColumnApi = params.columnApi;
       // Fetch initial total count
       this.fetchTotalCount();
+      this.gridApi.addEventListener('filterChanged', this.onFilterChanged);
     },
     async fetchTotalCount() {
       try {
         // const response = await axios.get('your-api-endpoint/count');
-        this.totalRows = 1200;
+        this.totalRows = 50000;
         this.gridApi.paginationSetPageSize(this.paginationPageSize);
         // this.gridApi.p
       } catch (error) {
         console.error('Error fetching total count:', error);
       }
     },
-    onBtPrevious() {
-      this.currentPage = this.currentPage - 1;
-      if ($this.currentPage <= 1) {
-        $this.currentPage = 1;
+    updateActiveFilters() {
+      this.activeFilters = {};
+      const filterModel = this.gridApi.getFilterModel();
+      for (const [key, value] of Object.entries(filterModel)) {
+        this.activeFilters[key] = value;
       }
-      this.fetchData();
     },
-    onBtNext() {
-      const parts = this.pagination.totalItems / this.paginationPageSize;
-      if (this.currentPage <= parts) {
-        this.currentPage = this.currentPage + 1;
-        this.fetchData();
-      }
+    exportFilteredData() {
+      const filteredData = [];
+      this.gridApi.forEachNodeAfterFilter(node => {
+        const temp = [];
+        temp.push(node.data.id);
+        temp.push(node.data.product.name);
+        temp.push(node.data.product.mainCode);
+        temp.push(node.data.product.code);
+        temp.push(node.data.customerName);
+        temp.push(node.data.quantity);
+        temp.push(node.data.transactionType);
+        temp.push(node.data.transactionDate);
+        filteredData.push(temp);
+      });
+      axios.post(`${baseURL}/small-export/nhap-data.xlsx`, {
+        filters: this.activeFilters,
+        data: filteredData
+      }, {
+        responseType: 'arraybuffer' // Important: This tells axios to expect binary data
+      })
+        .then(response => {
+          // Create a Blob from the Excel data
+          const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+          // Create a link element and trigger the download
+          const link = document.createElement('a');
+          link.href = window.URL.createObjectURL(blob);
+          link.download = 'nhap-data.xlsx';
+          link.click();
+
+          // Clean up
+          window.URL.revokeObjectURL(link.href);
+        })
+        .catch(error => {
+          console.error('Error exporting Excel:', error);
+        });
+    },
+    onFilterChanged() {
+      // Trigger re-computation of filteredAgeSum
+
+      let sum = 0;
+      this.gridApi.forEachNodeAfterFilter(node => {
+        sum += node.data.quantity;
+      });
+      this.totalAmount = sum;
+
+      this.$forceUpdate();
     },
     paginationNumberFormatter(params) {
       return '[' + params.value.toLocaleString() + ']';
@@ -201,19 +268,32 @@ export default {
 </script>
 
 <style scoped>
+.wrapper p {
+  display: flex;
+  align-items: center;
+}
+
+.wrapper p>* {
+  margin-right: 10px;
+}
+
 .ag-theme-alpine {
   width: 100%;
   height: 100%;
 }
+
 img {
   display: block;
   margin: 20px auto;
 }
+
 .high-price-row {
-  background-color: #fdd; /* Light red background for high price */
+  background-color: #fdd;
+  /* Light red background for high price */
 }
 
 .low-price-row {
-  background-color: #dfd; /* Light green background for low price */
+  background-color: #dfd;
+  /* Light green background for low price */
 }
 </style>
