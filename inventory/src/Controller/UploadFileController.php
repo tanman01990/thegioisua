@@ -11,7 +11,6 @@ use App\Entity\Product;
 use App\Entity\Customer;
 use App\Entity\Inventory;
 use Psr\Log\LoggerInterface;
-use function PHPSTORM_META\type;
 use App\Entity\InventoryTransaction;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use Doctrine\ORM\EntityManagerInterface;
@@ -104,7 +103,7 @@ class UploadFileController extends AbstractController
             $result = $this->s3Service->uploadFile($filePath, $s3Key);
             return new JsonResponse(['status' => 'success', 'filename' => $filename]);
         }
-        return new JsonResponse(['status' => 'error', 'message' => 'No file uploaded'], Response::HTTP_BAD_REQUEST);
+        return new JsonResponse(['status' => 'error', 'message' => 'No file uploaded']);
     }
 
     public function handleImportProductIntoInventory($rows, $fileName, $inventoryId, $type = 'Xuat')

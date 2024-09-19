@@ -40,6 +40,15 @@ class ExportController extends AbstractController
          return $response;
     }
 
+    #[Route('/api/list-file', name: 'get_list', methods: ['GET'])]
+    public function listFile(): Response
+    {
+         // Download file from S3
+         $result = $this->s3Service->listFilesInFolder('uploads');
+         return new JsonResponse(['files' => $result]);
+         
+    }
+
     #[Route('/api/small-export/{filename}', name: 'get_export', methods: ['POST'])]
     public function smallExport(string $filename, Request $request): Response
     {

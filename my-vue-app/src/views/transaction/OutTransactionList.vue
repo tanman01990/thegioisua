@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h2>Danh sách Nhập</h2>
+    <h2>Danh sách Xuất</h2>
     <div>Số Bản ghi: {{ totalCount }}</div>
     <div>Số lượng hiện tại: {{ totalAmount }}</div>
     <div>
@@ -80,7 +80,7 @@ export default {
         { headerName: 'Giao dịch', field: 'transactionType', width: 100, filter: true, editable: true, suppressSizeToFit: true },
         { headerName: 'Thành tiền', field: 'totalPrice', width: 100 },
         {
-          headerName: 'Ngày nhập', field: 'transactionDate', filter: true, editable: true,
+          headerName: 'Ngày xuất', field: 'transactionDate', filter: true, editable: true,
           filter: 'agTextColumnFilter',
           width: 150, suppressSizeToFit: true
         },
@@ -139,22 +139,6 @@ export default {
         this.isLoading = true;
         this.exportFilteredData();
         this.isLoading = false;
-        // const from = this.fromDate;
-        // const to = this.toDate
-        // // const page = this.currentPage;
-        // // const limit = 50;
-        // const page = this.currentPage;
-        // const limit = this.paginationPageSize;
-        // const response = await axios.get(`${baseURL}/export`, {
-        //   params: { page, limit, from, to },
-        //   responseType: 'blob'
-        // });
-
-        // const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        // const link = document.createElement('a');
-        // link.href = window.URL.createObjectURL(blob);
-        // link.download = 'export.xlsx';
-        // link.click();
       } catch (error) {
         console.error('Error fetching data:', error);
       } finally {
@@ -219,7 +203,7 @@ export default {
         temp.push(node.data.transactionDate);
         filteredData.push(temp);
       });
-      axios.post(`${baseURL}/small-export/nhap-data.xlsx`, {
+      axios.post(`${baseURL}/small-export/xuat-data.xlsx`, {
         filters: this.activeFilters,
         data: filteredData
       }, {
