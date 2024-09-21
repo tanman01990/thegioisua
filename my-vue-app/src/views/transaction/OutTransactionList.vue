@@ -39,7 +39,6 @@ import VueDatePicker from '@vuepic/vue-datepicker';
 import { useAlertStore } from '@/stores';
 
 const baseURL = import.meta.env.VITE_BASE_API_URL;
-const alertStore = useAlertStore();
 const showConfirmation = ref(false);
 export default {
   components: {
@@ -188,10 +187,11 @@ export default {
     },
     async deleteItem() {
       try {
+        const alertStore = useAlertStore()
         let from = this.fromDate;
-        console.log(this.fromDate)
         from = this.refineDate(from)
-        const to = this.toDate
+        let to = this.toDate
+        to = this.refineDate(to)
         console.log("Ngay from ::" + from);
         console.log("Ngay to ::" + to);
         // Call the API to delete the item
@@ -253,7 +253,7 @@ export default {
       axios.post(`${baseURL}/small-export`, {
         filters: this.activeFilters,
         data: filteredData,
-        type: 'Xuat'
+        type: 'Nhap'
       }, {
         responseType: 'arraybuffer' // Important: This tells axios to expect binary data
       })

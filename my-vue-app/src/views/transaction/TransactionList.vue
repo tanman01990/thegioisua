@@ -36,10 +36,12 @@ import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-quartz.css";
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
 import VueDatePicker from '@vuepic/vue-datepicker';
+import '@vuepic/vue-datepicker/dist/main.css';
 import { useAlertStore } from '@/stores';
-
+const ColourComponent = {
+  template: '<span :style="{color: params.color}">{{params.value}}</span>'
+};
 const baseURL = import.meta.env.VITE_BASE_API_URL;
-const alertStore = useAlertStore();
 const showConfirmation = ref(false);
 export default {
   components: {
@@ -188,10 +190,11 @@ export default {
     },
     async deleteItem() {
       try {
+        const alertStore = useAlertStore()
         let from = this.fromDate;
-        console.log(this.fromDate)
         from = this.refineDate(from)
-        const to = this.toDate
+        let to = this.toDate
+        to = this.refineDate(to)
         console.log("Ngay from ::" + from);
         console.log("Ngay to ::" + to);
         // Call the API to delete the item
