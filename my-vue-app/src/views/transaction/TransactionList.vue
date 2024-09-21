@@ -6,18 +6,19 @@
     <div>
       <div class='wrapper'>
         <p><label>Từ ngày</label>
-          <VueDatePicker v-model="fromDate" :format="'dd/MM/yyyy'" :min-date="new Date('2024-01-01')"
-            :max-date="new Date('2024-12-31')" placeholder="Select a date" />
+          <VueDatePicker v-model="fromDate" :format="'dd/MM/yyyy'" placeholder="Chọn ngày bắt đầu" />
           <label>Den ngày</label>
-          <VueDatePicker v-model="toDate" :format="'dd/MM/yyyy'" :min-date="new Date('2024-01-01')"
-            :max-date="new Date('2024-12-31')" placeholder="Select a date" />
+          <VueDatePicker v-model="toDate" :format="'dd/MM/yyyy'" placeholder="Chọn ngày  thúc" />
         </p>
-        <button @click="fetchData">Tìm kiếm</button>
-        <button @click="exportExcel">Xuất file</button>
+        <button @click="fetchData"> Tìm kiếm </button>
+        <button @click="exportExcel"> Xuất file </button>
+        <button @click="showDeleteConfirmModal">Xoá dữ liệu </button>
 
         <img v-if="isLoading" src="@/assets/giphy.webp" alt="Loading..." />
       </div>
     </div>
+    <confirmation-modal v-model="isModalVisible" title="Xoá dữ liệu" message="Bạn có chắc chăc chắn muốn xoá không ?"
+      @confirm="deleteItem" @cancel="closeModal" />
     <ag-grid-vue class="ag-theme-quartz" :columnDefs="columnDefs" :rowData="items" :getRowId="getRowId"
       :frameworkComponents="frameworkComponents" :pagination="true" :paginationPageSize="pageSize"
       :paginationPageSizeSelector="paginationPageSizeSelector" @grid-ready="onGridReady" :modules="modules"
@@ -33,18 +34,18 @@ import { ref, onMounted } from 'vue';
 import { AgGridVue } from "ag-grid-vue3"; // Vue Data Grid Component
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-quartz.css";
-import moment from 'moment';
+import ConfirmationModal from '@/components/ConfirmationModal.vue';
 import VueDatePicker from '@vuepic/vue-datepicker';
-import '@vuepic/vue-datepicker/dist/main.css'
-const ColourComponent = {
-  template: '<span :style="{color: params.color}">{{params.value}}</span>'
-};
-const baseURL = import.meta.env.VITE_BASE_API_URL;
+import { useAlertStore } from '@/stores';
 
+const baseURL = import.meta.env.VITE_BASE_API_URL;
+const alertStore = useAlertStore();
+const showConfirmation = ref(false);
 export default {
   components: {
     'ag-grid-vue': AgGridVue,
     'VueDatePicker': VueDatePicker,
+    'confirmation-modal': ConfirmationModal
   },
 
   data() {
@@ -52,6 +53,7 @@ export default {
     return {
       fromDate: '',
       isLoading: false,
+      isModalVisible: false,
       toDate: '',
       currentPage: 1,
       items: [],
@@ -96,19 +98,32 @@ export default {
   computed: {
     filteredAgeSum() {
       if (!this.gridApi) {
-        console.log("filteredAgeSum ===============")
         return 0;
       }
-      console.log("filteredAgeSum")
       let sum = 0;
       this.gridApi.forEachNodeAfterFilter(node => {
-        console.log(node);
         sum += node.data.quantity;
       });
       return sum;
     }
   },
   methods: {
+    refineDate(dateString) {
+      console.log(typeof(dateString));
+      if (typeof dateString === 'string') {
+        // Split the string by space and take the first part
+        dateString = dateString.split(' ')[0];
+      } else if (typeof dateString === 'object') {
+        dateString = dateString.toISOString().split('T')[0];
+      }
+      const cleanDateString = dateString.split(' ')[0];
+      // Convert to a Date object
+      const date = new Date(cleanDateString);
+      // Format the date as YYYY-MM-DD
+      const formattedDate = date.toISOString().split('T')[0];
+      console.log(formattedDate);  // Output: "2024-08-01"
+      return formattedDate;
+    },
     getRowClass(params) {
       if (params.data.id % 2) {
         return 'high-price-row';
@@ -134,39 +149,11 @@ export default {
       this.fromDate = this.getFirstDayOfMonth(now);
       this.toDate = this.getLastDayOfMonth(now);
     },
-    async exportExcel() {
-      try {
-        this.isLoading = true;
-        this.exportFilteredData();
-        this.isLoading = false;
-        // const from = this.fromDate;
-        // const to = this.toDate
-        // // const page = this.currentPage;
-        // // const limit = 50;
-        // const page = this.currentPage;
-        // const limit = this.paginationPageSize;
-        // const response = await axios.get(`${baseURL}/export`, {
-        //   params: { page, limit, from, to },
-        //   responseType: 'blob'
-        // });
 
-        // const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        // const link = document.createElement('a');
-        // link.href = window.URL.createObjectURL(blob);
-        // link.download = 'export.xlsx';
-        // link.click();
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      } finally {
-        this.isLoading = false;
-      }
-    },
     async fetchData() {
       try {
         const from = this.fromDate;
         const to = this.toDate
-        // const page = this.currentPage;
-        // const limit = 50;
         const page = this.currentPage;
         const limit = this.paginationPageSize;
         const transactionType = this.transactionType;
@@ -179,6 +166,50 @@ export default {
         this.totalCount = response.data.pagination.totalItems;
       } catch (error) {
         console.error('Error fetching data:', error);
+      }
+    },
+    async exportExcel() {
+      try {
+        this.isLoading = true;
+        this.exportFilteredData();
+        this.isLoading = false;
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    showDeleteConfirmModal() {
+      this.isModalVisible = true;
+      showConfirmation.value = true;
+    },
+    closeModal() {
+      this.isModalVisible = false;
+    },
+    async deleteItem() {
+      try {
+        let from = this.fromDate;
+        console.log(this.fromDate)
+        from = this.refineDate(from)
+        const to = this.toDate
+        console.log("Ngay from ::" + from);
+        console.log("Ngay to ::" + to);
+        // Call the API to delete the item
+        const response = await axios.post(`${baseURL}/delete-transaction`, {
+          from: from,
+          to: to,
+          type: 'Nhap'
+        });
+        if (response.data) {
+          console.log('Số bản ghi đã xoá ::' + response.data);
+          alertStore.success('Số bản ghi đã xoá ::' + response.data.data);
+        } else {
+          console.error('Failed to delete item' );
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        this.closeModal(); // Close the modal after deletion
       }
     },
     onGridReady(params) {
@@ -219,9 +250,10 @@ export default {
         temp.push(node.data.transactionDate);
         filteredData.push(temp);
       });
-      axios.post(`${baseURL}/small-export/nhap-data.xlsx`, {
+      axios.post(`${baseURL}/small-export`, {
         filters: this.activeFilters,
-        data: filteredData
+        data: filteredData,
+        type: 'Nhap'
       }, {
         responseType: 'arraybuffer' // Important: This tells axios to expect binary data
       })
@@ -232,7 +264,7 @@ export default {
           // Create a link element and trigger the download
           const link = document.createElement('a');
           link.href = window.URL.createObjectURL(blob);
-          link.download = 'nhap-data.xlsx';
+          link.download = 'data-nhap.xlsx';
           link.click();
 
           // Clean up

@@ -7,6 +7,7 @@ use App\Entity\Category;
 use App\Service\ProductService;
 use App\Service\TransactionService;
 use Doctrine\ORM\EntityManagerInterface;
+use Exception;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -39,4 +40,21 @@ class TransactionController extends AbstractController
         return $this->json($result);
     }
 
+    #[Route('/api/delete-transaction', name: 'delete_transaction', methods: ['POST'])]
+    public function delete(TransactionService $transactionService, Request $request): JsonResponse
+    {
+
+        try {
+            $content = $request->getContent();
+            $postData = json_decode($content, true);
+            $startDateInput = $postData['from'];
+            $endDateInput = $postData['to'];
+            $startDate = new \DateTime($startDateInput . ' 00:00:00');
+            $endDate = new \DateTime($endDateInput . ' 23:59:59');
+            $result = $transactionService->deleteDataBetweenDates($startDate, $endDate);
+            return $this->json(["data" => $result]);
+        } catch (Exception $ex) {
+            return $this->json(["data" => $ex->getMessage()]);
+        }
+    }
 }

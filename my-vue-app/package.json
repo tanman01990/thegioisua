@@ -13,8 +13,6 @@
     "@ag-grid-community/core": "^32.0.0",
     "@ag-grid-community/csv-export": "^32.0.0",
     "@ag-grid-community/infinite-row-model": "^32.0.0",
-    "@syncfusion/ej2-vue-calendars": "^26.1.40",
-    "@syncfusion/ej2-vue-grids": "^25.2.6",
     "@vuepic/vue-datepicker": "^9.0.3",
     "ag-grid-community": "^31.3.2",
     "ag-grid-vue3": "^31.3.2",

@@ -6,4 +6,5 @@ export { default as EditButton } from './EditButton.vue';
 export { default as DeleteButton } from './DeleteButton.vue';
 export { default as DynamicButton } from './DynamicButton.vue';
 export { default as ActionButtonRenderer } from './ActionButtonRenderer.vue';
+export { default as ConfirmationModal } from './ConfirmationModal.vue';
 // export { default as AddInventory } from './AddInventory.vue';

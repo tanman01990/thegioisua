@@ -146,15 +146,6 @@ class TransactionService
                 'totalItems' =>  $count,
             ],
         ];
-
-        // return [
-        //     'items' => $this->entityRepository->queryByInventoryAndTransactionTypeInPeriod($inventoryId, $transactionType, $from, $to, $limit, $page),
-        //     'pagination' => [
-        //         'currentPage' => 0,
-        //         'totalPages' => round($count/$limit) + ($count%$limit ? 1 : 0),
-        //         'totalItems' =>  $count,
-        //     ],
-        // ];
     }
 
     // I want to add bunch of inventory transaction here
@@ -177,6 +168,18 @@ class TransactionService
         }
         
         $this->entityManager->flush();
+    }
+
+    public function deleteDataBetweenDates(\DateTime $startDate, \DateTime $endDate)
+    {
+        $qb = $this->entityManager->createQueryBuilder();
+
+        $qb->delete(InventoryTransaction::class, 'e')
+           ->where('e.transactionDate BETWEEN :startDate AND :endDate')
+           ->setParameter('startDate', $startDate)
+           ->setParameter('endDate', $endDate);
+
+        return $qb->getQuery()->execute();
     }
 
     

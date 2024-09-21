@@ -41,9 +41,16 @@ export default {
       try {
         this.isLoading = true;
         const fileName = this.selectedOption.split('/').pop();
-        const response = await axios.get(`${baseURL}/export/${fileName}`, {
-          responseType: 'blob'
-        });
+        const response = await axios.post(`${baseURL}/export`, 
+          { filename: fileName },
+          { 
+            responseType: 'blob',
+            headers: {
+              'Content-Type': 'application/json',
+              // Add any other necessary headers
+            }
+          }
+        );
 
         const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
         const link = document.createElement('a');
